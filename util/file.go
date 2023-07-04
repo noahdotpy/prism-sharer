@@ -5,18 +5,10 @@ import (
 )
 
 func DoesFileExist(filePath string) bool {
-	if _, err := os.Stat("sample.txt"); err == nil {
-		return true
-	} else {
-		return false
-	}
+	_, err := os.Stat(filePath)
+	return err == nil
 }
 
-func IsFileSymlink(filePath string) (bool, error) {
-	fileInfo, err := os.Lstat(filePath)
-	if err != nil {
-		return false, err
-	}
-
-	return fileInfo.Mode()&os.ModeSymlink != 0, nil
+func IsSymlink(fileInfo os.FileInfo) bool {
+	return fileInfo.Mode()&os.ModeSymlink != 0
 }

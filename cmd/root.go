@@ -2,11 +2,11 @@ package cmd
 
 import (
 	"github.com/charmbracelet/log"
-
-	"github.com/noahdotpy/prism-sharer/config"
 	"github.com/remeh/userdir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/noahdotpy/prism-sharer/core"
 )
 
 var rootCmd = &cobra.Command{
@@ -17,12 +17,6 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-var (
-	configFile   string
-	isVerboseLog bool
-	loadedConfig config.Config
-)
-
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal(err)
@@ -31,12 +25,12 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initCobra)
-	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "config file to use")
-	rootCmd.PersistentFlags().BoolVarP(&isVerboseLog, "verbose", "v", false, "extra log messages")
+	rootCmd.PersistentFlags().StringVarP(&core.ConfigFile, "config", "c", "", "config file to use")
+	rootCmd.PersistentFlags().BoolVarP(&core.IsVerboseLog, "verbose", "v", false, "extra log messages")
 }
 
 func initCobra() {
-	if isVerboseLog {
+	if core.IsVerboseLog {
 		log.SetLevel(log.DebugLevel)
 	}
 
@@ -44,8 +38,8 @@ func initCobra() {
 }
 
 func initConfig() {
-	if configFile != "" {
-		viper.SetConfigFile(configFile)
+	if core.ConfigFile != "" {
+		viper.SetConfigFile(core.ConfigFile)
 	} else {
 		configDir := userdir.GetConfigHome() + "/prism-sharer"
 
@@ -64,7 +58,7 @@ func initConfig() {
 		log.Fatalf("Can't read config: %v", err)
 	}
 
-	if err := viper.Unmarshal(&loadedConfig); err != nil {
+	if err := viper.Unmarshal(&core.Config); err != nil {
 		log.Fatalf("Can't unmarshall config: %v", err)
 	}
 }

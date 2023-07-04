@@ -2,7 +2,7 @@ package config
 
 type Config struct {
 	InstancesDir string           `mapstructure:"instancesDir"`
-	StoreDir     string           `mapstructure:"storeDir"`
+	StoresDir    string           `mapstructure:"storesDir"`
 	Groups       map[string]Group `mapstructure:"groups"`
 }
 
