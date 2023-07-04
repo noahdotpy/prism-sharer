@@ -8,5 +8,5 @@ type Config struct {
 
 type Group struct {
 	Instances []string `mapstructure:"instances"`
-	Shared    []string `mapstructure:"shared"`
+	Resources []string `mapstructure:"resources"`
 }
