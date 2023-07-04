@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
+	"github.com/charmbracelet/log"
 
+	"github.com/noahdotpy/prism-sharer/config"
 	"github.com/remeh/userdir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -17,32 +17,54 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-var cfgFile = ""
+var (
+	configFile   string
+	isVerboseLog bool
+	loadedConfig config.Config
+)
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file to use")
+	cobra.OnInitialize(initCobra)
+	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "config file to use")
+	rootCmd.PersistentFlags().BoolVarP(&isVerboseLog, "verbose", "v", false, "extra log messages")
+}
+
+func initCobra() {
+	if isVerboseLog {
+		log.SetLevel(log.DebugLevel)
+	}
+
+	initConfig()
 }
 
 func initConfig() {
-	if cfgFile != "" {
-		viper.SetConfigFile(cfgFile)
+	if configFile != "" {
+		viper.SetConfigFile(configFile)
 	} else {
 		configDir := userdir.GetConfigHome() + "/prism-sharer"
 
 		viper.AddConfigPath(configDir)
-		viper.SetConfigName("config.toml")
+		viper.SetConfigName("config.json")
 	}
 
+	viper.SetConfigType("json")
+
+	dataHome := userdir.GetDataHome()
+
+	viper.SetDefault("storeDir", dataHome+"/prism-sharer/")
+	viper.SetDefault("instancesDir", dataHome+"/PrismLauncher/instances/")
+
 	if err := viper.ReadInConfig(); err != nil {
-		fmt.Println("Can't read config:", err)
-		os.Exit(1)
+		log.Fatalf("Can't read config: %v", err)
+	}
+
+	if err := viper.Unmarshal(&loadedConfig); err != nil {
+		log.Fatalf("Can't unmarshall config: %v", err)
 	}
 }
