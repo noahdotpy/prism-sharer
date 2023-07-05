@@ -7,6 +7,7 @@ require (
 	github.com/remeh/userdir v0.0.0-20150716210934-d0b6526e0082
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
+	golang.org/x/exp v0.0.0-20230626212559-97b1e661b5df
 )
 
 require (

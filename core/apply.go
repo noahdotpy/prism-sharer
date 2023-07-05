@@ -1,12 +1,14 @@
 package core
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/slices"
 
 	"github.com/noahdotpy/prism-sharer/util"
 )
@@ -15,8 +17,43 @@ import (
 // TODO: Check for existing symlinks to the store, remove if not declared
 func ApplyRun(cmd *cobra.Command, args []string) {
 	for groupName, group := range Config.Groups {
+		groupStore := filepath.Join(Config.StoresDir, groupName)
+		for _, instanceName := range group.Instances {
+			instanceDir := filepath.Join(Config.InstancesDir, "/", instanceName, "/.minecraft/")
+
+			log.Debug("Starting pre-applying cleanup", "instance", instanceName)
+
+			err := filepath.WalkDir(instanceDir, func(path string, d fs.DirEntry, err error) error {
+				fileInfo, err := os.Lstat(path)
+				if err != nil {
+					return err
+				}
+
+				if !util.IsSymlink(fileInfo) {
+					return nil
+				}
+				symlinkOrigin, err := os.Readlink(path)
+				if err != nil {
+					return err
+				}
+				isLinkDeclared := slices.ContainsFunc(group.Resources, func(el string) bool {
+					// log.Print(groupStore + "/el")
+					return strings.HasPrefix(symlinkOrigin, groupStore)
+				})
+				if !isLinkDeclared {
+					log.Warn("Removing old link", "path", path)
+					os.Remove(path)
+				}
+				// TODO: Is it possible to remove leftover parent directories of deleted links
+				log.Debugf("'%v' symlink is declared: %v", symlinkOrigin, isLinkDeclared)
+				return nil
+			})
+			if err != nil {
+				log.Errorf("impossible to walk directories: %s", err)
+			}
+		}
 		for _, resource := range group.Resources {
-			groupStore := filepath.Join(Config.StoresDir, groupName)
+			// groupStore := filepath.Join(Config.StoresDir, groupName)
 			resourcePath := filepath.Join(groupStore, "/", resource)
 
 			if !util.DoesFileExist(resourcePath) {
@@ -41,7 +78,10 @@ func ApplyRun(cmd *cobra.Command, args []string) {
 					continue
 				}
 
+				log.Debug("There is a file blocking symlink creation", "resource", resource, "instanceName", instanceName)
+
 				blockerIsSymlink := util.IsSymlink(linkPathInfo)
+				log.Debug("", "    blockerIsSymlink", blockerIsSymlink)
 
 				var isLinkingBlocked bool
 
@@ -50,8 +90,14 @@ func ApplyRun(cmd *cobra.Command, args []string) {
 				}
 
 				if blockerIsSymlink {
+
+					blockerOrigin, err := os.Readlink(linkPath)
+					if err != nil {
+						log.Errorf("Could not read symlink for '%v' in instance '%v': %v", resource, instanceName, err)
+					}
+					log.Debug("", "    blockerOrigin", blockerOrigin)
 					if isBlockingSymlinkExpected(resourcePath, linkPath) {
-						log.Debugf("Skipped creating symlink for '%v' in instance '%v'. Expected symlink already exists.", resource, instanceName)
+						log.Debugf("     Skipped creating symlink, blocker has the expected origin")
 						continue
 					}
 
@@ -72,6 +118,7 @@ func ApplyRun(cmd *cobra.Command, args []string) {
 						resource,
 						instanceName)
 				}
+
 			}
 		}
 	}
@@ -106,11 +153,11 @@ func createSymlink(originPath string, linkPath string, resourceName string) erro
 }
 
 func isBlockingSymlinkExpected(expectedOrigin string, linkPath string) bool {
-	actualOrigin, err := os.Readlink(linkPath)
+	blockerOrigin, err := os.Readlink(linkPath)
 	if err != nil {
 		log.Fatalf("Could not read symlink: %v", err)
 	}
 
-	return expectedOrigin == actualOrigin
+	return expectedOrigin == blockerOrigin
 
 }
