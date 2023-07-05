@@ -14,7 +14,6 @@ import (
 )
 
 // NOTE: Can we make this atomic?
-// TODO: Check for existing symlinks to the store, remove if not declared
 func ApplyRun(cmd *cobra.Command, args []string) {
 	for groupName, group := range Config.Groups {
 		groupStore := filepath.Join(Config.StoresDir, groupName)
@@ -37,7 +36,6 @@ func ApplyRun(cmd *cobra.Command, args []string) {
 					return err
 				}
 				isLinkDeclared := slices.ContainsFunc(group.Resources, func(el string) bool {
-					// log.Print(groupStore + "/el")
 					return strings.HasPrefix(symlinkOrigin, groupStore)
 				})
 				if !isLinkDeclared {
@@ -53,7 +51,6 @@ func ApplyRun(cmd *cobra.Command, args []string) {
 			}
 		}
 		for _, resource := range group.Resources {
-			// groupStore := filepath.Join(Config.StoresDir, groupName)
 			resourcePath := filepath.Join(groupStore, "/", resource)
 
 			if !util.DoesFileExist(resourcePath) {

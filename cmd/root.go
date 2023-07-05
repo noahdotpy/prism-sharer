@@ -26,7 +26,7 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initCobra)
 	rootCmd.PersistentFlags().StringVarP(&core.ConfigFile, "config", "c", "", "config file to use")
-	rootCmd.PersistentFlags().BoolVarP(&core.IsVerboseLog, "verbose", "v", false, "extra log messages")
+	rootCmd.PersistentFlags().BoolVar(&core.IsVerboseLog, "debug", false, "extra log messages")
 }
 
 func initCobra() {
